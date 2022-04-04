@@ -15,6 +15,11 @@ from dwave.system.composites.embedding import EmbeddingComposite
 random = SystemRandom()
 np.set_printoptions(linewidth=np.inf,threshold=sys.maxsize)
 
+def convert_solution_to_ising(x, n):
+    z = np.zeros(n)
+    for i in range(n):
+        z[i] = 2*x[i] - 1
+    return z
 
 def function_f(Q, x):
     return np.matmul(np.matmul(x, Q), np.atleast_2d(x).T)
@@ -206,11 +211,11 @@ def solve(d_min, eta, i_max, k, lambda_zero, n, N, N_max, p_delta, q, topology, 
 
         print(now()+" ["+colors.BOLD+colors.OKGREEN+"ANN"+colors.ENDC+"] Working on z1...", end=' ')
         start = time.time()
-        z_one = map_back(annealer(Theta_one, sampler, k), m_one)
+        z_one = convert_solution_to_ising(map_back(annealer(Theta_one, sampler, k), m_one), n)
         convert_1 = datetime.timedelta(seconds=(time.time()-start))
         print("Ended in "+str(convert_1)+"\n"+now()+" ["+colors.BOLD+colors.OKGREEN+"ANN"+colors.ENDC+"] Working on z2...", end=' ')
         start = time.time()
-        z_two = map_back(annealer(Theta_two, sampler, k), m_two)
+        z_two = convert_solution_to_ising(map_back(annealer(Theta_two, sampler, k), m_two), n)
         convert_2 = datetime.timedelta(seconds=(time.time()-start))
         print("Ended in "+str(convert_2)+"\n")
 
@@ -264,7 +269,7 @@ def solve(d_min, eta, i_max, k, lambda_zero, n, N, N_max, p_delta, q, topology, 
             
             print(now()+" ["+colors.BOLD+colors.OKGREEN+"ANN"+colors.ENDC+"] Working on z'...", end=' ')
             start = time.time()
-            z_prime = map_back(annealer(Theta_prime, sampler, k), m)
+            z_prime = convert_solution_to_ising(map_back(annealer(Theta_prime, sampler, k), m), n)
             convert_z = datetime.timedelta(seconds=(time.time()-start))
             print("Ended in "+str(convert_z))
 
