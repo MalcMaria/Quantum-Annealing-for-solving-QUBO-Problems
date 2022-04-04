@@ -21,6 +21,12 @@ def convert_solution_to_ising(x, n):
         z[i] = 2*x[i] - 1
     return z
 
+def ising_to_binary(z, n):
+    x = np.zeros(n)
+    for i in range(n):
+        x[i] = (z[i] + 1)/2
+    return x
+
 def function_f(Q, x):
     return np.matmul(np.matmul(x, Q), np.atleast_2d(x).T)
 
@@ -219,8 +225,8 @@ def solve(d_min, eta, i_max, k, lambda_zero, n, N, N_max, p_delta, q, topology, 
         convert_2 = datetime.timedelta(seconds=(time.time()-start))
         print("Ended in "+str(convert_2)+"\n")
 
-        f_one = function_f(Q, z_one).item()
-        f_two = function_f(Q, z_two).item()
+        f_one = function_f(Q, ising_to_binary(z_one, n)).item()
+        f_two = function_f(Q, ising_to_binary(z_two, n)).item()
 
         if (f_one < f_two):
             z_star = z_one
@@ -247,7 +253,8 @@ def solve(d_min, eta, i_max, k, lambda_zero, n, N, N_max, p_delta, q, topology, 
     i = 1
     lam = lambda_zero
     sum_time = 0
-    
+    flag=0
+    S0=np.zeros((n,n))
     while True:
         print(f"---------------------------------------------------------------------------------------------------------------")
         start_time = time.time()
@@ -277,7 +284,7 @@ def solve(d_min, eta, i_max, k, lambda_zero, n, N, N_max, p_delta, q, topology, 
                 z_prime = h(z_prime, p)
 
             if (z_prime != z_star).any() :
-                f_prime = function_f(Q, z_prime).item()
+                f_prime = function_f(Q, ising_to_binary(z_prime, n)).item()
                 
                 if (f_prime < f_star):
                     z_prime, z_star = z_star, z_prime
@@ -287,6 +294,8 @@ def solve(d_min, eta, i_max, k, lambda_zero, n, N, N_max, p_delta, q, topology, 
                     d = 0
                     S = S + ((np.outer(z_prime, z_prime) - I) +
                              np.diagflat(z_prime))
+                    if (np.allclose(S,S0,atol=1e-2)):
+                        flag = i
                 else:
                     d = d + 1
                     if make_decision((p-p_delta)**(f_prime-f_star)):
@@ -330,5 +339,6 @@ def solve(d_min, eta, i_max, k, lambda_zero, n, N, N_max, p_delta, q, topology, 
     
     print(now()+" ["+colors.BOLD+colors.OKGREEN+"TIME"+colors.ENDC+"] Average time for iteration: " + str(conv)+"\n"+now()+" ["+colors.BOLD+colors.OKGREEN+"TIME"+colors.ENDC+"] Total time: "+str(converted)+"\n")
 
+    if(flag>0):
+        print("/n/n/nRegeneration at iteration:"+flag+"/n/n/n")
     return np.atleast_2d(np.atleast_2d(z_star).T).T[0], conv
-
