@@ -5,7 +5,7 @@ from QA4QUBO.matrix import generate_chimera, generate_pegasus
 from QA4QUBO.script import annealer, hybrid
 from dwave.system.samplers import DWaveSampler
 from dwave.system import LeapHybridSampler
-from dwave_sapi2.util import qubo_to_ising, ising_to_qubo
+import dimod
 import datetime
 import neal
 import sys
@@ -279,8 +279,9 @@ def solve(d_min, eta, i_max, k, lambda_zero, n, N, N_max, p_delta, q, topology, 
         
 
         try:
-            hQ, JQ = qubo_to_ising(Q)
-            Q_prime = ising_to_qubo(update_tabu_matr(hQ, JQ, np.multiply(lam, S)))
+            hI, JI, offsetI = dimod.qubo_to_ising(Q)
+            newhI, newJI = update_tabu_matr(hI, JI, np.multiply(lam, S))
+            Q_prime = dimod.ising_to_qubo(newhI, newJI, offsetI)
             
             if (i % N == 0):
                 p = p - ((p - p_delta)*eta)
