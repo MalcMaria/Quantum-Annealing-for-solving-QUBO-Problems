@@ -15,7 +15,7 @@ from dwave.system.composites.embedding import EmbeddingComposite
 random = SystemRandom()
 np.set_printoptions(linewidth=np.inf,threshold=sys.maxsize)
 
-def convert_solution_to_ising(x, n):
+def binary_to_ising(x, n):
     z = np.zeros(n)
     for i in range(n):
         z[i] = 2*x[i] - 1
@@ -217,11 +217,11 @@ def solve(d_min, eta, i_max, k, lambda_zero, n, N, N_max, p_delta, q, topology, 
 
         print(now()+" ["+colors.BOLD+colors.OKGREEN+"ANN"+colors.ENDC+"] Working on z1...", end=' ')
         start = time.time()
-        z_one = convert_solution_to_ising(map_back(annealer(Theta_one, sampler, k), m_one), n)
+        z_one = binary_to_ising(map_back(annealer(Theta_one, sampler, k), m_one), n)
         convert_1 = datetime.timedelta(seconds=(time.time()-start))
         print("Ended in "+str(convert_1)+"\n"+now()+" ["+colors.BOLD+colors.OKGREEN+"ANN"+colors.ENDC+"] Working on z2...", end=' ')
         start = time.time()
-        z_two = convert_solution_to_ising(map_back(annealer(Theta_two, sampler, k), m_two), n)
+        z_two = binary_to_ising(map_back(annealer(Theta_two, sampler, k), m_two), n)
         convert_2 = datetime.timedelta(seconds=(time.time()-start))
         print("Ended in "+str(convert_2)+"\n")
 
@@ -276,12 +276,12 @@ def solve(d_min, eta, i_max, k, lambda_zero, n, N, N_max, p_delta, q, topology, 
             
             print(now()+" ["+colors.BOLD+colors.OKGREEN+"ANN"+colors.ENDC+"] Working on z'...", end=' ')
             start = time.time()
-            z_prime = convert_solution_to_ising(map_back(annealer(Theta_prime, sampler, k), m), n)
+            z_prime = binary_to_ising(map_back(annealer(Theta_prime, sampler, k), m), n)
             convert_z = datetime.timedelta(seconds=(time.time()-start))
             print("Ended in "+str(convert_z))
 
             if make_decision(q):
-                z_prime = h(z_prime, p)
+                z_prime = binary_to_ising(h(ising_to_binary(z_prime, n), p), n)
 
             if (z_prime != z_star).any() :
                 f_prime = function_f(Q, ising_to_binary(z_prime, n)).item()
