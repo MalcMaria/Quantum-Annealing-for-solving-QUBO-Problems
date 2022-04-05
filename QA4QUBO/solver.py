@@ -36,8 +36,15 @@ def update_tabu_matr(h,J,S):
         hnew[i]=h[i]+S[i][i]
         if i<n-1:
             for j in range(i+1,n):
-                Jnew[i,j] = J[i,j] + S[i,j]
+                Jnew[i,j] = J[i,j] + S[i][j]
     return hnew, Jnew
+
+def convert_to_qubo(Q, n):
+    qubo = dict()
+    for i in range(n):
+        for j in range(n):
+            qubo[i, j] = Q[i][j]
+    return qubo
 
 def function_f(Q, x):
     return np.matmul(np.matmul(x, Q), np.atleast_2d(x).T)
@@ -279,7 +286,8 @@ def solve(d_min, eta, i_max, k, lambda_zero, n, N, N_max, p_delta, q, topology, 
         
 
         try:
-            hI, JI, offsetI = dimod.qubo_to_ising(Q)
+            qubo = convert_to_qubo(Q, n)
+            hI, JI, offsetI = dimod.qubo_to_ising(qubo)
             newhI, newJI = update_tabu_matr(hI, JI, np.multiply(lam, S))
             Q_prime = dimod.ising_to_qubo(newhI, newJI, offsetI)
             
