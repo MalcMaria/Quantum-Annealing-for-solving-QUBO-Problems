@@ -5,6 +5,7 @@ from QA4QUBO.matrix import generate_chimera, generate_pegasus
 from QA4QUBO.script import annealer, hybrid
 from dwave.system.samplers import DWaveSampler
 from dwave.system import LeapHybridSampler
+from dwave_sapi2.util import qubo_to_ising, ising_to_qubo
 import datetime
 import neal
 import sys
@@ -26,6 +27,17 @@ def ising_to_binary(z, n):
     for i in range(n):
         x[i] = (z[i] + 1)/2
     return x
+
+def update_tabu_matr(h,J,S):
+    hnew = dict()
+    Jnew = dict()
+    n=len(h)
+    for i in range(n):
+        hnew[i]=h[i]+S[i][i]
+        if i<n-1:
+            for j in range(i+1,n):
+                Jnew[i,j] = J[i,j] + S[i,j]
+    return hnew, Jnew
 
 def function_f(Q, x):
     return np.matmul(np.matmul(x, Q), np.atleast_2d(x).T)
@@ -267,7 +279,8 @@ def solve(d_min, eta, i_max, k, lambda_zero, n, N, N_max, p_delta, q, topology, 
         
 
         try:
-            Q_prime = np.add(Q, (np.multiply(lam, S)))
+            hQ, JQ = qubo_to_ising(Q)
+            Q_prime = ising_to_qubo(update_tabu_matr(hQ, JQ, np.multiply(lam, S)))
             
             if (i % N == 0):
                 p = p - ((p - p_delta)*eta)
@@ -307,15 +320,17 @@ def solve(d_min, eta, i_max, k, lambda_zero, n, N, N_max, p_delta, q, topology, 
             else:
                 e = e + 1
 
+            x_prime = ising_to_binary(z_prime, n)
+            x_star = ising_to_binary(z_star, n)
             
             converted = datetime.timedelta(seconds=(time.time()-start_time))
 
             try:
                 print(now()+" ["+colors.BOLD+colors.OKGREEN+"DATA"+colors.ENDC+f"] f_prime = {round(f_prime,2)}, f_star = {round(f_star,2)}, p = {p}, e = {e}, d = {d} and lambda = {round(lam,5)}\n"+now()+" ["+colors.BOLD+colors.OKGREEN+"DATA"+colors.ENDC+f"] Took {converted} in total")
-                csv_write(DIR=log_DIR,l=[i, f_prime, f_star, p, e, d, lam, z_prime, z_star])
+                csv_write(DIR=log_DIR,l=[i, f_prime, f_star, p, e, d, lam, x_prime, x_star])
             except UnboundLocalError:
                 print(now()+" ["+colors.BOLD+colors.OKGREEN+"DATA"+colors.ENDC+f" No variations on f and z. p = {p}, e = {e}, d = {d} and lambda = {round(lam,5)}\n"+now()+" ["+colors.BOLD+colors.OKGREEN+"DATA"+colors.ENDC+f"] Took {converted} in total")
-                csv_write(DIR=log_DIR,l=[i, "null", f_star, p, e, d, lam, "null", z_star])
+                csv_write(DIR=log_DIR,l=[i, "null", f_star, p, e, d, lam, "null", x_star])
             
             sum_time = sum_time + (time.time() - start_time)
 
@@ -341,4 +356,4 @@ def solve(d_min, eta, i_max, k, lambda_zero, n, N, N_max, p_delta, q, topology, 
 
     if(flag>0):
         print("/n/n/nRegeneration at iteration:"+flag+"/n/n/n")
-    return np.atleast_2d(np.atleast_2d(z_star).T).T[0], conv
+    return np.atleast_2d(np.atleast_2d(x_star).T).T[0], conv
