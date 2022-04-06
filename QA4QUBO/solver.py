@@ -10,6 +10,7 @@ import datetime
 import neal
 import sys
 import csv
+from start import convert_qubo_to_Q
 from random import SystemRandom
 from QA4QUBO.colors import colors
 from dwave.system.composites.embedding import EmbeddingComposite
@@ -34,9 +35,12 @@ def update_tabu_matr(h,J,S):
     n=len(h)
     for i in range(n):
         hnew[i]=h[i]+S[i][i]
-        if i<n-1:
+        if i<(n-1):
             for j in range(i+1,n):
-                Jnew[i,j] = J[i,j] + S[i][j]
+                if (i, j) in J.keys():
+                    Jnew[i,j] = J[i,j] + S[i][j]
+                else:
+                    Jnew[i, j] = S[i][j]
     return hnew, Jnew
 
 def convert_to_qubo(Q, n):
@@ -289,8 +293,9 @@ def solve(d_min, eta, i_max, k, lambda_zero, n, N, N_max, p_delta, q, topology, 
             qubo = convert_to_qubo(Q, n)
             hI, JI, offsetI = dimod.qubo_to_ising(qubo)
             newhI, newJI = update_tabu_matr(hI, JI, np.multiply(lam, S))
-            Q_prime = dimod.ising_to_qubo(newhI, newJI, offsetI)
-            
+            Q_prime_dict, offset = dimod.ising_to_qubo(newhI, newJI, offsetI)
+            Q_prime = convert_qubo_to_Q(Q_prime_dict, n)
+
             if (i % N == 0):
                 p = p - ((p - p_delta)*eta)
 
